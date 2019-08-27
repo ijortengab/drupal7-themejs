@@ -1,0 +1,66 @@
+<?php
+
+/**
+ * Collect all theme in javascript.
+ */
+function themejs_info($theme = null) {
+    static $info;
+    if ($info === null) {
+        $info = [];
+        foreach (module_implements('themejs') as $module) {
+            $themes = (array) module_invoke($module, 'themejs');
+            foreach ($themes as $name => $theme_info) {
+                $info[$name] = $theme_info;
+                $info[$name]['module'] = $module;
+            }
+        }
+    }
+    if ($theme !== null && array_key_exists($theme, $info)) {
+        return $info[$theme];
+    }
+    return $info;
+}
+
+/**
+ * Provide array to quick using in property #options in element select.
+ */
+function themejs_options($object = null) {
+    $info = themejs_info();
+    return array_filter(array_map(function ($value) use ($object) {
+        // Wajib punya title, karena akan digunakan pada fieldset label.
+        if (!isset($value['title'])) {
+            return false;
+        }
+        if (isset($value['available']) && $object !== null) {
+            $is_there = false;
+            foreach ($value['available'] as $class) {
+                if ($object instanceof $class) {
+                    $is_there = true;
+                    break;
+                }
+            }
+            if (!$is_there) {
+                return false;
+            }
+        }
+        return $value['title'];
+    }, $info));
+}
+
+/**
+ * Implements hook_library().
+ */
+function themejs_library() {
+    $path = drupal_get_path('module', 'themejs');
+    $libraries['themejs.theme'] = [
+        'title' => 'Theme JS API',
+        'website' => 'https://github.com/ijortengab/drupal7-sbadmin2',
+        'version' => '1.0.0',
+        'js' => [
+            $path.'/themejs.js' => [
+                'group' => JS_THEME,
+            ],
+        ],
+    ];
+    return $libraries;
+}
